@@ -1,5 +1,6 @@
 extends KinematicBody
 
+const DIST_FLOOR_SNAP := Vector3.DOWN * 0.2
 
 onready var body : Spatial = $Body
 onready var head : Spatial = $Body/Head
@@ -24,6 +25,7 @@ export(float) var friction_ground := 6.0
 
 
 var velocity := Vector3.ZERO
+var floor_snap := Vector3.ZERO
 
 
 func get_move_direction() -> Vector3:
@@ -48,18 +50,27 @@ func rotate_look(amount : Vector2) -> void:
 
 func _physics_process(delta):
 	
-	velocity.y = max(-max_fall_speed, velocity.y - gravity * delta)
-	
+	var was_on_floor : bool = is_on_floor()
 	var h_target_dir : Vector3 = get_move_direction()
+	
 	if is_on_floor():
 		apply_friction(delta)
 		accelerate(delta, h_target_dir, move_speed, accel_ground)
 		if Input.is_action_pressed("jump"):
 			velocity.y = sqrt(2 * jump_height * abs(gravity))
+			floor_snap = Vector3.ZERO
 	else:
+		# hack: only add gravity not on ground, to prevent sliding on slopes 
+		# This works because move_and_slide_with_snap warps the player to the ground in other cases
+		velocity.y = max(-max_fall_speed, velocity.y - gravity * delta)
 		accelerate(delta, h_target_dir, move_speed, accel_air)
 	
-	velocity = move_and_slide(velocity, Vector3.UP, true, 4, deg2rad(max_slope_angle), false)
+	velocity = move_and_slide_with_snap(velocity, floor_snap, Vector3.UP, true, 4, deg2rad(max_slope_angle), false)
+	
+	if !was_on_floor and is_on_floor():
+		floor_snap = DIST_FLOOR_SNAP
+	elif was_on_floor and !is_on_floor():
+		floor_snap = Vector3.ZERO
 
 
 func accelerate(delta : float, p_target_dir : Vector3, p_target_speed : float, p_accel : float):

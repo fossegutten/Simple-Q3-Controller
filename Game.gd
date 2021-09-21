@@ -10,7 +10,9 @@ func _ready():
 
 
 func _process(delta):
-	label.text = "Velocity: %3.2f" % [Vector2(player.velocity.x, player.velocity.z).length()]
+	label.text = "H Velocity: %3.2f" % [Vector2(player.velocity.x, player.velocity.z).length()]
+	label.text += "\nV Velocity: %3.2f" % [player.velocity.y]
+	label.text += "\nOn floor: %s" % player.is_on_floor()
 
 
 func _input(event):
